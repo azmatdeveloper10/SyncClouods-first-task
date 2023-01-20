@@ -33,34 +33,30 @@ const Form = () => {
     status: '',
     periority: '',
   });
-  const [inputError, setError] = useState('');
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
 
   const formSub = function (e) {
     e.preventDefault();
+    if (Object.values(input).every(val => val !== '')) {
+      if (input.status === 'incomplete') {
+        setTasks(prevTask => {
+          return [...prevTask, input];
+        });
+      } else if (input.status === 'complete') {
+        setCompletedTasks(prevCom => {
+          return [...prevCom, input];
+        });
+      }
 
-    for (const [key, val] of Object.entries(input)) {
-      console.log(input.key);
-    }
-
-    if (input.status === 'incomplete') {
-      setTasks(prevTask => {
-        return [...prevTask, input];
+      setInput({
+        Task: '',
+        Desc: '',
+        status: '',
+        periority: '',
+        id: '',
       });
-    } else if (input.status === 'complete') {
-      setCompletedTasks(prevCom => {
-        return [...prevCom, input];
-      });
     }
-
-    setInput({
-      Task: '',
-      Desc: '',
-      status: '',
-      periority: '',
-      id: '',
-    });
   };
 
   const handleInput = e => {
@@ -240,8 +236,9 @@ const Form = () => {
                   name='Task'
                   value={input.Task}
                   onChange={handleInput}
-                  error={inputError ? true : false}
-                  helperText={inputError}
+                  required
+                  // error={inputError.TaskError ? false : true}
+                  // helperText={'Please Enter Task'}
                 />
               </Grid>
 
@@ -255,8 +252,8 @@ const Form = () => {
                   name='Desc'
                   value={input.Desc}
                   onChange={handleInput}
-                  error={inputError ? true : false}
-                  helperText={inputError}
+                  // error={inputError.DescError ? false : true}
+                  // helperText={'Please Enter Description'}
                 />
               </Grid>
 
@@ -274,6 +271,8 @@ const Form = () => {
                         name='status'
                         value={input.status}
                         onChange={handleInput}
+                        // error={inputError.statusError ? false : true}
+                        // helperText={'Please Enter Status'}
                       >
                         <MenuItem value={'complete'}>Complete</MenuItem>
                         <MenuItem value={'incomplete'}>Incomplete</MenuItem>
@@ -292,6 +291,8 @@ const Form = () => {
                         name='periority'
                         value={input.periority}
                         onChange={handleInput}
+                        // error={inputError.periorityError ? false : true}
+                        // helperText={'Please Enter Periority'}
                       >
                         <MenuItem value={'High'}>High</MenuItem>
                         <MenuItem value={'Low'}>Low</MenuItem>
