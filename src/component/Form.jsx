@@ -19,12 +19,13 @@ import {
 } from '@mui/material';
 import DoneOutlineIcon from '@mui/icons-material/DoneOutline';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { borderRadius } from '@mui/system';
 import { indigo } from '@mui/material/colors';
 import Checkbox from '@mui/material/Checkbox';
 
 import FormControl from '@mui/material/FormControl';
+import swal from 'sweetalert';
 
 const Form = () => {
   const [input, setInput] = useState({
@@ -36,17 +37,132 @@ const Form = () => {
   const [tasks, setTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
 
+  const [sortTasks, setSortTasks] = useState([]);
+  const [sortCompletedTasks, setSortCompletedTasks] = useState([]);
+
+  const [inputError, setInputError] = useState({
+    errorTask: '',
+
+    errorstatus: '',
+    errorperiority: '',
+  });
+
+  ///////////////// Sorting tasks Array /////////////
+
+  const sortTasksFunc = () => {
+    const newArr = tasks.sort((a, b) => {
+      if (a.periority === 'High') {
+        return -1;
+      } else {
+        return 1;
+      }
+    });
+
+    return newArr;
+  };
+
+  useEffect(() => {
+    setSortTasks(sortTasksFunc());
+  }, [tasks]);
+
+  ///////////////// Sorting completed tasks Array /////////////
+
+  const sortCompletedTasksFunc = () => {
+    const newArr = completedTasks.sort((a, b) => {
+      if (a.periority === 'High') {
+        return -1;
+      } else {
+        return 1;
+      }
+    });
+
+    return newArr;
+  };
+
+  useEffect(() => {
+    setSortCompletedTasks(sortCompletedTasksFunc());
+  }, [completedTasks]);
+
+  // //////////////// complete alter function /////////////////////////////
+
+  const completeAlter = (heading, title) => {
+    return swal(`${heading}`, `${title}`, 'success');
+  };
+
+  // //////////////////// delete task alter ///////////////////////////
+  const completeDeleteAlter = (fileTitle, task) => {
+    // if (task.status === 'complete') {
+    return swal({
+      title: 'Are you sure?',
+      text: `Once deleted, you will not be able to recover this ${fileTitle} file!`,
+      icon: 'warning',
+      buttons: true,
+      dangerMode: true,
+    }).then(willDelete => {
+      if (willDelete) {
+        const deleteCompletedTasks = function (task) {
+          const completedTaskCopy = completedTasks.slice(0);
+
+          const updatedCompletedTasks = completedTaskCopy.filter(
+            tsk => tsk.id !== task.id
+          );
+          setCompletedTasks(updatedCompletedTasks);
+        };
+        deleteCompletedTasks(task);
+        swal(`Poof! Your ${fileTitle} file has been deleted!`, {
+          icon: 'success',
+        });
+      } else {
+        swal(`Your ${fileTitle} file is safe!`);
+      }
+    });
+  };
+
+  const incompleteDeleteAlert = (fileTitle, task, id) => {
+    swal({
+      title: 'Are you sure?',
+      text: `Once deleted, you will not be able to recover this ${fileTitle} file!`,
+      icon: 'warning',
+      buttons: true,
+      dangerMode: true,
+    }).then(willDelete => {
+      if (willDelete) {
+        const deleteTasks = function (task, id) {
+          const taskCopy = tasks.slice(0);
+          const upDatedTasks = taskCopy.filter(task => task.id !== id);
+          setTasks(upDatedTasks);
+        };
+        deleteTasks(task, id);
+        swal(`Poof! Your ${fileTitle} file has been deleted!`, {
+          icon: 'success',
+        });
+      } else {
+        swal(`Your ${fileTitle} file is safe!`);
+      }
+    });
+  };
+
+  // /////////////// form submition function ////////////////////
+
   const formSub = function (e) {
     e.preventDefault();
-    if (Object.values(input).every(val => val !== '')) {
+    const inputCopy = { ...input };
+    const deleteDescription = delete inputCopy.Desc;
+
+    if (Object.values(inputCopy).every(val => val !== '')) {
       if (input.status === 'incomplete') {
         setTasks(prevTask => {
           return [...prevTask, input];
         });
+        completeAlter(
+          'Task Successfull Enter',
+          'You Have enter incomplete task'
+        );
       } else if (input.status === 'complete') {
         setCompletedTasks(prevCom => {
           return [...prevCom, input];
         });
+        completeAlter('Task Successfull Enter', 'You Have enter complete task');
       }
 
       setInput({
@@ -56,8 +172,36 @@ const Form = () => {
         periority: '',
         id: '',
       });
+
+      setInputError({
+        errorTask: '',
+        errorstatus: '',
+        errorperiority: '',
+      });
+    } else {
+      setInputError({
+        errorTask: '',
+        errorstatus: '',
+        errorperiority: '',
+      });
+      const inputCopy = { ...input };
+      const deleteDescription = delete inputCopy.Desc;
+      const emptyField = Object.keys(inputCopy).filter(
+        val => inputCopy[val] === ''
+      );
+      console.log('else');
+      emptyField.forEach(key => {
+        setInputError(prevError => {
+          return {
+            ...prevError,
+            [`error${key}`]: 'Please fill Field',
+          };
+        });
+      });
     }
   };
+
+  // /////////////// tasking input from form function ////////////////////
 
   const handleInput = e => {
     setInput(prevInput => {
@@ -69,6 +213,8 @@ const Form = () => {
     });
   };
 
+  // /////////////// turned incompleted task to completed task  ////////////////////
+
   const completedTask = function (task) {
     const newTask = {
       ...task,
@@ -77,22 +223,34 @@ const Form = () => {
     const taskCopy = tasks.slice(0);
     const upDatedTasks = taskCopy.filter(tsk => tsk.id !== task.id);
     setTasks(upDatedTasks);
+    completeAlter(
+      'Task Successfull Enter',
+      'You Have turned inomplete task to complete '
+    );
     setCompletedTasks(prevCom => [...prevCom, newTask]);
   };
 
-  const deleteTask = function (id) {
-    const taskCopy = tasks.slice(0);
-    const upDatedTasks = taskCopy.filter(task => task.id !== id);
-    setTasks(upDatedTasks);
-  };
+  // /////////////// delete task from tasks array function ////////////////////
 
-  const deleteCompletedTasks = function (comTask) {
-    const completedTaskCopy = completedTasks.slice(0);
-    const updatedCompletedTasks = completedTaskCopy.filter(
-      tsk => tsk.id !== comTask.id
-    );
-    setCompletedTasks(updatedCompletedTasks);
-  };
+  // const deleteTask = function (id) {
+  //   const taskCopy = tasks.slice(0);
+  //   const upDatedTasks = taskCopy.filter(task => task.id !== id);
+  //   setTasks(upDatedTasks);
+  //   deleteAlter('incomplete task');
+  // };
+
+  // /////////////// delete complete task from completedtasks array function ////
+
+  // const deleteCompletedTasks = function (comTask) {
+  //   const completedTaskCopy = completedTasks.slice(0);
+  //   const updatedCompletedTasks = completedTaskCopy.filter(
+  //     tsk => tsk.id !== comTask.id
+  //   );
+  //   setCompletedTasks(updatedCompletedTasks);
+  //   deleteAlter('complete task');
+  // };
+
+  // ////////// changing incompleted task to complete task function /////
 
   const [currentStatus, setCurrentStatus] = useState('');
   const [currentPeriority, setCurrentPeriority] = useState('');
@@ -107,10 +265,18 @@ const Form = () => {
       setTasks(prevTask => {
         return [...prevTask, newTask];
       });
+      completeAlter(
+        'Task Successfull Enter',
+        'You Have turned complete task to incomplete'
+      );
     } else if (newTask.status === 'complete') {
       setCompletedTasks(prevCom => {
         return [...prevCom, newTask];
       });
+      completeAlter(
+        'Task Successfull Enter',
+        'You Have turned incomplete task to complete'
+      );
     }
 
     const upDateTasks = tasks.filter(tsk => tsk.id !== newTask.id);
@@ -122,6 +288,8 @@ const Form = () => {
 
     setCurrentStatus('');
   };
+
+  // ////////// changing completed task priority function ////////////
 
   const handleCurrentPeriority = (e, task) => {
     setCurrentPeriority(e.value);
@@ -147,8 +315,11 @@ const Form = () => {
     setCurrentPeriority('');
   };
 
+  // ////////// changing completed task to incomplete task function /////
+
   const [currentCompleteStatus, setCurrentCompleteStatus] = useState('');
   const [currentCompletePeriority, setCurrentCompletePeriority] = useState('');
+
   const handleCurrentCompletedStatus = (e, task) => {
     setCurrentCompleteStatus(e.value);
     const newTask = {
@@ -160,10 +331,18 @@ const Form = () => {
       setTasks(prevTask => {
         return [...prevTask, newTask];
       });
+      completeAlter(
+        'Task Successfull Enter',
+        'You Have turned complete task to incomplete'
+      );
     } else if (newTask.status === 'complete') {
       setCompletedTasks(prevCom => {
         return [...prevCom, newTask];
       });
+      completeAlter(
+        'Task Successfull Enter',
+        'You Have turned incomplete task to complete'
+      );
     }
 
     const upDateCompleteTasks = completedTasks.filter(
@@ -177,6 +356,8 @@ const Form = () => {
 
     setCurrentCompleteStatus('');
   };
+
+  // ////////// changing incompleted task priority priority function /////
 
   const handleCurrentCompletePeriority = (e, task) => {
     setCurrentPeriority(e.value);
@@ -203,6 +384,8 @@ const Form = () => {
 
     setCurrentPeriority('');
   };
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return (
     <Box
@@ -237,8 +420,10 @@ const Form = () => {
                   value={input.Task}
                   onChange={handleInput}
                   required
-                  // error={inputError.TaskError ? false : true}
-                  // helperText={'Please Enter Task'}
+                  error={inputError.errorTask === '' ? false : true}
+                  helperText={
+                    inputError.errorTask === '' ? '' : 'Please Enter Task'
+                  }
                 />
               </Grid>
 
@@ -252,17 +437,19 @@ const Form = () => {
                   name='Desc'
                   value={input.Desc}
                   onChange={handleInput}
-                  // error={inputError.DescError ? false : true}
-                  // helperText={'Please Enter Description'}
                 />
               </Grid>
 
               <Grid item xs={8}>
                 <Grid container>
                   <Grid item xs={6}>
-                    <FormControl style={{ width: '150px' }} size='small'>
+                    <FormControl
+                      style={{ width: '150px' }}
+                      size='small'
+                      error={inputError.errorstatus === '' ? false : true}
+                    >
                       <InputLabel id='demo-simple-select-label'>
-                        Status
+                        Status*
                       </InputLabel>
                       <Select
                         labelId='demo-simple-select-label'
@@ -271,7 +458,7 @@ const Form = () => {
                         name='status'
                         value={input.status}
                         onChange={handleInput}
-                        // error={inputError.statusError ? false : true}
+                        // error={inputError.errorstatus === '' ? false : true}
                         // helperText={'Please Enter Status'}
                       >
                         <MenuItem value={'complete'}>Complete</MenuItem>
@@ -280,9 +467,19 @@ const Form = () => {
                     </FormControl>
                   </Grid>
                   <Grid item xs={6}>
-                    <FormControl style={{ width: '150px' }} size='small'>
-                      <InputLabel id='demo-simple-select-label'>
-                        Periority
+                    <FormControl
+                      style={{ width: '150px' }}
+                      size='small'
+                      error={inputError.errorperiority === '' ? false : true}
+                    >
+                      <InputLabel
+                        id={
+                          inputError.errorperiority === ''
+                            ? 'demo-simple-select-label'
+                            : 'demo-simple-select-error-label'
+                        }
+                      >
+                        Priority*
                       </InputLabel>
                       <Select
                         labelId='demo-simple-select-label'
@@ -291,8 +488,7 @@ const Form = () => {
                         name='periority'
                         value={input.periority}
                         onChange={handleInput}
-                        // error={inputError.periorityError ? false : true}
-                        // helperText={'Please Enter Periority'}
+                        // error={inputError.errorperiority === '' ? false : true}
                       >
                         <MenuItem value={'High'}>High</MenuItem>
                         <MenuItem value={'Low'}>Low</MenuItem>
@@ -330,7 +526,11 @@ const Form = () => {
                     P
                   </Avatar>
                 </ListItemAvatar>
-                <ListItemText primary={task.Task} secondary={task.Desc} />
+                <ListItemText
+                  primary={task.Task}
+                  secondary={task.Desc}
+                  style={{ maxWidth: '470px' }}
+                />
               </ListItem>
               <ListItemSecondaryAction
                 style={{ display: 'flex', alignItems: 'center' }}
@@ -345,7 +545,9 @@ const Form = () => {
                   </IconButton>
                   <IconButton
                     style={{ color: 'red' }}
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() =>
+                      incompleteDeleteAlert('Completed Task', task, task.id)
+                    }
                   >
                     <DeleteForeverIcon />
                   </IconButton>
@@ -362,14 +564,13 @@ const Form = () => {
                         id='demo-simple-select'
                         label='Status'
                         name='status'
-                        value={currentStatus}
+                        value={task.status}
                         onChange={e => handleCurrentStatus(e.target, task)}
                       >
                         <MenuItem value={'complete'}>Complete</MenuItem>
                         <MenuItem value={'incomplete'}>Incomplete</MenuItem>
                       </Select>
                     </FormControl>
-                    <p>{task.status}</p>
                   </div>
 
                   <div
@@ -381,21 +582,20 @@ const Form = () => {
                   >
                     <FormControl style={{ width: '150px' }} size='small'>
                       <InputLabel id='demo-simple-select-label'>
-                        Periority
+                        Priority
                       </InputLabel>
                       <Select
                         labelId='demo-simple-select-label'
                         id='demo-simple-select'
                         label='periority'
                         name='periority'
-                        value={currentPeriority}
+                        value={task.periority}
                         onChange={e => handleCurrentPeriority(e.target, task)}
                       >
                         <MenuItem value={'High'}>High</MenuItem>
                         <MenuItem value={'Low'}>Low</MenuItem>
                       </Select>
                     </FormControl>
-                    <p>{task.periority}</p>
                   </div>
                 </div>
               </ListItemSecondaryAction>
@@ -419,21 +619,30 @@ const Form = () => {
             Completed Tasks
           </Typography>
           {completedTasks.map(comTask => (
-            <List key={comTask.id} style={{ padding: '2rem 0.5rem' }}>
+            <List
+              key={comTask.id}
+              style={{
+                padding: '2rem 0.5rem',
+              }}
+            >
               <ListItem>
                 <ListItemAvatar>
                   <Avatar style={{ background: indigo[500], color: 'white' }}>
                     P
                   </Avatar>
                 </ListItemAvatar>
-                <ListItemText primary={comTask.Task} secondary={comTask.Desc} />
+                <ListItemText
+                  primary={comTask.Task}
+                  secondary={comTask.Desc}
+                  style={{ maxWidth: '470px' }}
+                />
               </ListItem>
               <ListItemSecondaryAction
                 style={{ display: 'flex', alignItems: 'center' }}
               >
                 <IconButton
                   style={{ color: 'red' }}
-                  onClick={() => deleteCompletedTasks(comTask)}
+                  onClick={() => completeDeleteAlter('Completed Task', comTask)}
                 >
                   <DeleteForeverIcon />
                 </IconButton>
@@ -449,7 +658,7 @@ const Form = () => {
                         id='demo-simple-select'
                         label='Status'
                         name='status'
-                        value={currentCompleteStatus}
+                        value={comTask.status}
                         onChange={e =>
                           handleCurrentCompletedStatus(e.target, comTask)
                         }
@@ -458,7 +667,6 @@ const Form = () => {
                         <MenuItem value={'incomplete'}>Incomplete</MenuItem>
                       </Select>
                     </FormControl>
-                    <p>{comTask.status}</p>
                   </div>
 
                   <div
@@ -470,14 +678,14 @@ const Form = () => {
                   >
                     <FormControl style={{ width: '150px' }} size='small'>
                       <InputLabel id='demo-simple-select-label'>
-                        Periority
+                        Priority
                       </InputLabel>
                       <Select
                         labelId='demo-simple-select-label'
                         id='demo-simple-select'
                         label='periority'
                         name='periority'
-                        value={currentPeriority}
+                        value={comTask.periority}
                         onChange={e =>
                           handleCurrentCompletePeriority(e.target, comTask)
                         }
@@ -486,7 +694,6 @@ const Form = () => {
                         <MenuItem value={'Low'}>Low</MenuItem>
                       </Select>
                     </FormControl>
-                    <p>{comTask.periority}</p>
                   </div>
                 </div>
               </ListItemSecondaryAction>
